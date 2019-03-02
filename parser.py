@@ -8,6 +8,7 @@ def euro_course():
     euro = (soup.find_all("tr")[12].get_text())
     current_euro = print(euro.split()[4])
     return current_euro
+
 def gatchina_weather():
     page = requests.get("https://yandex.ru/pogoda/gatchina")
     soup = BeautifulSoup(page.content,'html.parser')
@@ -18,4 +19,4 @@ def gatchina_weather():
 
 if __name__ == "__main__":
     gatchina_weather()
-    current_euro()
+    euro_course()
