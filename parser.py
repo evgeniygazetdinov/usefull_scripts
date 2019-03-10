@@ -18,4 +18,4 @@ def gatchina_weather():
 
 if __name__ == "__main__":
     gatchina_weather()
-    current_euro()
+    euro_course()
