@@ -10,6 +10,6 @@ from selenium.webdriver.common.keys import Keys
 browser = webdriver.Chrome()
 browser.get('https://spb.hh.ru/search/vacancy?text=&area=2')
 search = browser.find_element_by_name('password')
-search.send_keys("segundo575118")
+search.send_keys("")
 search.send_keys(Keys.RETURN)
 
