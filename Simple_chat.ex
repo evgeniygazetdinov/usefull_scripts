@@ -1,3 +1,4 @@
+#{:ok, pid} = Chat.Server.start_link remember
 defmodule Simple_Chat do
     use GenServer
     def start_link do
