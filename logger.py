@@ -1,6 +1,9 @@
 import logging
 import sys
-logging.basicConfig(filename = "reports.log",level = logging.DEBUG,format='%(asctime)s %(message)s')
+import os
+file_name = os.path.splitext("/path/to/some/file.txt")[0]
+
+logging.basicConfig(filename = "reports_{}.log".format(filename),level = logging.DEBUG,format='%(asctime)s %(message)s')
 logging.info("this info")
 logging.warning("this warning")
 logging.debug("this debug")
