@@ -19,4 +19,6 @@ cnoremap <C-h> <Left>
 cnoremap <C-j> <Down>
 cnoremap <C-k> <Up>
 cnoremap <C-l> <Right>
-
+set expandtab ts=4
+syntax on
+colorscheme desert
