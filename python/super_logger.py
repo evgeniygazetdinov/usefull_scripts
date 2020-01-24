@@ -7,8 +7,8 @@ randoms = ''.join([random.choice(string.ascii_letters + string.digits + string.p
 
 
 def log(phrase):
-    f1=open('{}/a.txt'.format(os.getcwd()), 'w+')
-    f1.write(str(datetime.datetime.now()))
+    import os
+    f1=open('{}/a.txt'.format(os.getcwd()), 'a')
     f1.write('\n')
     f1.write(str(phrase))
     f1.write('\n')
