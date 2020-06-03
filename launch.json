@@ -7,10 +7,13 @@
         {
             "name": "Python: Current File",
             "type": "python",
-            "pythonPath": "/home/evgesha/code/business/photobackend/env/bin/python3",
+            //"pythonPath": "/home/evgesha/code/business/bot/env/bin/python3",
+            "pythonPath": "/home/evgesha/code/business/venv_b/bin/python3",
+            
             "request": "launch",
-            "program": "${file}",
-            "console": "integratedTerminal"
+            "program": "proto.py",
+            "console": "integratedTerminal",
+            "args": ["--debug"]
         }
     ]
 }
