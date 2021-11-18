@@ -18,6 +18,11 @@ class RobotThread(Thread):
             test_name = args[-2]
             test_path = args[-1]
             cli_args += ['-t', test_name, test_path]
+            
+        elif '--run_one_by_path' in args:
+            test_path = args[-1]
+            cli_args += ['-n noncritical', test_path]
+            
         else:
             cli_args += args
             cli_args += ['-d',
