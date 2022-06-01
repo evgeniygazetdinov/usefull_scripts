@@ -14,9 +14,10 @@ LAYER_STORAGE = '/home/evgesha/code/storecraft/.deploy/data/firebird/storage/'
 DB_OPERATION = f'sudo docker exec -it {CONTAINER_NAME} psql -U billing -c'
 CONTAINER_OP = 'sudo docker'
 
-def remove_connection_to(container):
+def remove_connection_to(container, need_to_up_container = True):
 	os.system(f'''{CONTAINER_OP} stop {container} ''')
-	os.system(f'''{CONTAINER_OP} start {container} ''')
+	if need_to_up_container:
+		os.system(f'''{CONTAINER_OP} start {container} ''')
 
 def remove_db():
 	os.system(f'''{DB_OPERATION} "DROP DATABASE {NAME_BASE}"''')
@@ -52,10 +53,14 @@ def create_super_user():
 	if res:
 		os.system('echo created user')
 
+def kill_server():
+	os.system('lsof -t -i tcp:8000 | xargs kill -9')
+
 if __name__ == '__main__':
 	remove_connection_to(CONTAINER_NAME)
 	db_operations()
 	# TODO move layer and restore db to async
-	remove_connection_to('storecraft')
+	remove_connection_to('storecraft', need_to_up_container=False)
 	move_layer()
 	create_super_user()
+	kill_server()
