@@ -5,6 +5,7 @@ import shutil
 layer_path = '/home/evgesha/Documents'
 layer_name = 'Individualnyy_p=210303_0eiBi85-MYSHOP.FDB'
 NAME_BASE = 'billing_prod3'
+billin_dir = '/home/evgesha/code/'
 
 CONTAINER_NAME = 'billing_postgres'
 
@@ -13,11 +14,10 @@ LAYER_STORAGE = '/home/evgesha/code/storecraft/.deploy/data/firebird/storage/'
 DB_OPERATION = f'sudo docker exec -it {CONTAINER_NAME} psql -U billing -c'
 CONTAINER_OP = 'sudo docker'
 
-def remove_connection_to_postgres():
-	os.system(f'''{CONTAINER_OP} stop {CONTAINER_NAME} ''')
-	os.system(f'''{CONTAINER_OP} start {CONTAINER_NAME} ''')
+def remove_connection_to(container):
+	os.system(f'''{CONTAINER_OP} stop {container} ''')
+	os.system(f'''{CONTAINER_OP} start {container} ''')
 
-	
 def remove_db():
 	os.system(f'''{DB_OPERATION} "DROP DATABASE {NAME_BASE}"''')
 	print('database removed')
@@ -46,44 +46,16 @@ def move_layer():
 	print('layer moved')
 
 def create_super_user():
-	os.system(f'''{DB_OPERATION} "INSERT INTO "auth_user" ("password", "last_login", "is_superuser", "username",
-	 "first_name", "last_name", "email", "is_staff", "is_active", "date_joined") VALUES 
-	 ('pbkdf2_sha256$150000$TNb5eCJOSRiN$qITNydZmKMh+0ljKvlQVwZ8pZxgnmRwyFztThFs316U=',
-	  NULL, true, 'user', '', '', 'w@w.ru', true, true, '2022-06-01T01:45:37.940205+00:00'
-	  ::timestamptz) RETURNING "auth_user"."id"; 
-	  args=('pbkdf2_sha256$150000$TNb5eCJOSRiN$qITNydZmKMh+0ljKvlQVwZ8pZxgnmRwyFztThFs316U=',
-	   None, True, 'user', '', '', 'w@w.ru', True, True, datetime.datetime(2022, 6, 1, 1, 45, 37, 940205, tzinfo=<UTC>))
-" ''')
-	os.system(f'''{DB_OPERATION} "INSERT INTO "billing_userprofile" ("created_at", "updated_at",
-	 "user_id", "title", "activation_trial_period_available", "registration_date", "global_user_id",
-	  "layer_owner", "payment_day", "expected_positive_balance_date", "timezone_offset_minutes",
-	   "organization", "credit", "freeze_application_service_hours", "version_service_user", 
-	   "auto_payment", "auto_payment_robokassa_invoice_id") VALUES 
-	   ('2022-06-01T01:45:38.048464+00:00'::timestamptz, '2022-06-01T01:45:38.048485+00:00'::timestamptz, 289051,
-	    'user', true, '2022-06-01T01:45:38.048242+00:00'::timestamptz, NULL, false,
-	     NULL, NULL, 0, 'mts', false, NULL, NULL, false, NULL) RETURNING "billing_userprofile"
-	     ."id"; args=(datetime.datetime(2022, 6, 1, 1, 45, 38, 48464, tzinfo=<UTC>), 
-	     datetime.datetime(2022, 6, 1, 1, 45, 38, 48485, tzinfo=<UTC>), 289051, 'user', True,
-	      datetime.datetime(2022, 6, 1, 1, 45, 38, 48242, tzinfo=<UTC>), None, False, None,
-	       None, 0, 'mts', False, None, None, False, None)" ''')
-	os.system(f'''{DB_OPERATION} "UPDATE "billing_userprofile" 
-		SET "created_at" = '2022-06-01T01:45:38.048464+00:00'::timestamptz,
-		 "updated_at" = '2022-06-01T01:45:38.055182+00:00'::timestamptz, "user_id" = 289051,
-		  "title" = 'user', "activation_trial_period_available" = true, 
-		  "registration_date" = '2022-06-01T01:45:38.048242+00:00'::timestamptz, 
-		  "global_user_id" = NULL, "layer_owner" = false, "payment_day" = NULL,
-		   "expected_positive_balance_date" = NULL, "timezone_offset_minutes" = 0,
-		    "organization" = 'mts', "credit" = false, "freeze_application_service_hours" = NULL,
-		     "version_service_user" = NULL, "auto_payment" = false, 
-		     "auto_payment_robokassa_invoice_id" = NULL WHERE "billing_userprofile"."id" = 286841;
-		      args=(datetime.datetime(2022, 6, 1, 1, 45, 38, 48464, tzinfo=<UTC>), 
-		      datetime.datetime(2022, 6, 1, 1, 45, 38, 55182, tzinfo=<UTC>), 289051, 
-		      'user', True, datetime.datetime(2022, 6, 1, 1, 45, 38, 48242, tzinfo=<UTC>), False, 0, 'mts', False, False, 286841)" ''')
-	print('super user created')
+	os.chdir('/home/evgesha/code/billing')
+	res = os.system('''echo "from django.contrib.auth.models import User; User.objects.create_superuser(
+		'user', 'leningrad@spb.ru', '1q2w3e4r')" | /home/evgesha/code/billing/env37/bin/python3 manage.py shell''')
+	if res:
+		os.system('echo created user')
 
 if __name__ == '__main__':
-	remove_connection_to_postgres()
+	remove_connection_to(CONTAINER_NAME)
 	db_operations()
 	# TODO move layer and restore db to async
+	remove_connection_to('storecraft')
 	move_layer()
 	create_super_user()
