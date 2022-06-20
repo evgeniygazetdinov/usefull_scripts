@@ -1,9 +1,9 @@
-
+#!/usr/bin/env python3.6
 import os
 import shutil
 
 layer_path = '/home/evgesha/Documents'
-layer_name = 'Individualnyy_p=210303_0eiBi85-MYSHOP.FDB'
+layer_name = 'Gennadevna=180510_RwbVnw7-MYSHOP.FDB'
 NAME_BASE = 'billing_prod3'
 billin_dir = '/home/evgesha/code/'
 
@@ -13,6 +13,7 @@ LAYER_PLACE = '/'.join([layer_path, layer_name])
 LAYER_STORAGE = '/home/evgesha/code/storecraft/.deploy/data/firebird/storage/'
 DB_OPERATION = f'sudo docker exec -it {CONTAINER_NAME} psql -U billing -c'
 CONTAINER_OP = 'sudo docker'
+DUMP_NAME = 'billing_prod_202267111617_87243.sql'
 
 def remove_connection_to(container, need_to_up_container = True):
 	os.system(f'''{CONTAINER_OP} stop {container} ''')
@@ -29,7 +30,7 @@ def restore_db():
 
 def upload_dump():
 	print('begin upload dump')
-	os.system(f'''cat billing_prod_20225196528_5401.sql | docker exec -i {CONTAINER_NAME} psql -U billing -d {NAME_BASE}''')
+	os.system(f'''cat {DUMP_NAME} | docker exec -i {CONTAINER_NAME} psql -U billing -d {NAME_BASE}''')
 	print('upload over')
 
 def restore_db_from_dump():
@@ -56,11 +57,34 @@ def create_super_user():
 def kill_server():
 	os.system('lsof -t -i tcp:8000 | xargs kill -9')
 
-if __name__ == '__main__':
+def notify_me():
+	os.system('aplay /usr/share/sounds/sound-icons/piano-3.wav' )
+	os.system('notify-send "upload status"  "script is over"')
+
+def create_sql_with_layer():
+    my_file=open('{}/my_sql.txt'.format(layer_path), 'w')
+    my_file.write(str("""update engine_users eu set 
+    eu.passwd='pbkdf2_sha256$200$gIdhBJC5WAgz$0q2L7V5WcuodEMI62ULACYVo/rA3JhX6qwsmi0leptk=' where eu.sauid=
+    (select );"""))
+    my_file.close()
+
+def replace_engine_password():
+	os.system('docker exec -it firebird isql -i my_sql.sql')
+
+def main():
 	remove_connection_to(CONTAINER_NAME)
 	db_operations()
 	# TODO move layer and restore db to async
 	remove_connection_to('storecraft', need_to_up_container=False)
-	move_layer()
+	try:
+		move_layer()
+	except:
+		pass
 	create_super_user()
 	kill_server()
+	notify_me()
+
+
+if __name__ == '__main__':
+	main()
+	
