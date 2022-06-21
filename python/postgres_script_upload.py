@@ -66,33 +66,40 @@ def notify_me():
 	os.system('notify-send "upload status"  "script is over"')
 
 def create_sql_with_layer():
-    my_file = open('/home/evgesha/code/storecraft/.deploy/data/firebird/my_sql.sql', 'w')
-    my_file.write("""update engine_users eu set 
-    	eu.passwd='pbkdf2_sha256$200$gIdhBJC5WAgz$0q2L7V5WcuodEMI62ULACYVo/rA3JhX6qwsmi0leptk=' where where
-		eu.phonenumber = '79037104579';""")
-    my_file.close()
+
+	my_PATH = """/home/evgesha/code/storecraft/.deploy/data/firebird/my_sql.sql"""
+	my_file = open(my_PATH, 'w')
+	my_file.write("""CONNECT '/firebird/data/sun2.litebox.ru_20_06_2022_11_48_05_ENGINE.FDB' USER 'SYSDBA' PASSWORD 'masterkey';
+		update engine_users eu set eu.passwd='pbkdf2_sha256$200$gIdhBJC5WAgz$0q2L7V5WcuodEMI62ULACYVo/rA3JhX6qwsmi0leptk=' 
+		where eu.phonenumber = '79037104579';""")
+	my_file.close()
+	return my_PATH
 
 def replace_engine_password():
-	create_sql_with_layer()
+	path = create_sql_with_layer()
 	os.chdir('/home/evgesha/code/storecraft/.deploy/data/firebird')
 	os.system('docker exec -it firebird isql -q -i firebird/data/my_sql.sql')
+	os.remove(path)
 
 def main():
 	remove_connection_to(CONTAINER_NAME)
 	db_operations()
 	# TODO move layer and restore db to async
 	remove_connection_to('storecraft', need_to_up_container=False)
+	
 	try:
 		move_layer()
 	except Exception as e:
 		print(e)
-	create_super_user()
 	replace_engine_password()
+	create_super_user()
+	
 	kill_server()
 	notify_me()
 
 
 if __name__ == '__main__':
 	main()
+	
 	
 	
