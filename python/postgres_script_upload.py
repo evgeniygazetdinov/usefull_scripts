@@ -1,10 +1,12 @@
 #!/usr/bin/env python3.6
+#!/usr/bin/env python3.6
 import os
 import shutil
 
 layer_path = '/home/evgesha/Documents'
-layer_name = 'Gennadevna=180510_RwbVnw7-MYSHOP.FDB'
-engine_name = 'sun2.litebox.ru_20_06_2022_11_48_05_ENGINE.FDB'
+layer_name = 'IP_KAREV_ANTON_=190627_x4OAQfo-MYSHOP.FDB'
+engine_name = 'bellatrix.litebox.ru_23_06_2022_06_45_48_ENGINE.FDB'
+phone = '79085314351'
 NAME_BASE = 'billing_prod3'
 billin_dir = '/home/evgesha/code/'
 
@@ -67,19 +69,26 @@ def notify_me():
 
 def create_sql_with_layer():
 
-	my_PATH = """/home/evgesha/code/storecraft/.deploy/data/firebird/my_sql.sql"""
-	my_file = open(my_PATH, 'w')
-	my_file.write("""CONNECT '/firebird/data/sun2.litebox.ru_20_06_2022_11_48_05_ENGINE.FDB' USER 'SYSDBA' PASSWORD 'masterkey';
+	engine_work = """/home/evgesha/code/storecraft/.deploy/data/firebird/engine_work.sql"""
+	layer_work = """/home/evgesha/code/storecraft/.deploy/data/firebird/layer_work.sql"""
+	my_file = open(engine_work, 'w')
+	my_file.write(f"""CONNECT '/firebird/data/{engine_name}' USER 'SYSDBA' PASSWORD 'masterkey';
 		update engine_users eu set eu.passwd='pbkdf2_sha256$200$gIdhBJC5WAgz$0q2L7V5WcuodEMI62ULACYVo/rA3JhX6qwsmi0leptk=' 
-		where eu.phonenumber = '79037104579';""")
+		where eu.phonenumber = '{phone}';""")
 	my_file.close()
-	return my_PATH
+	my_file = open(layer_work, 'w')
+	my_file.write(f"""CONNECT '/firebird/data/storage/{layer_name}' USER 'SYSDBA' PASSWORD 'masterkey';
+		update profile pr set pr.status='-1' where pr.uid != 468 and pr.status='1';""")
+	my_file.close()
+			
+	return [engine_work, layer_work]
 
 def replace_engine_password():
-	path = create_sql_with_layer()
+	sql_path = create_sql_with_layer()
 	os.chdir('/home/evgesha/code/storecraft/.deploy/data/firebird')
-	os.system('docker exec -it firebird isql -q -i firebird/data/my_sql.sql')
-	os.remove(path)
+	os.system('docker exec -it firebird isql -q -i firebird/data/engine_work.sql')
+	os.system('docker exec -it firebird isql -q -i firebird/data/layer_work.sql')
+	[os.remove(path) for path in sql_path]
 
 def main():
 	remove_connection_to(CONTAINER_NAME)
@@ -100,6 +109,8 @@ def main():
 
 if __name__ == '__main__':
 	main()
+	
+
 	
 	
 	
