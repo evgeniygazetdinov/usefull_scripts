@@ -1,5 +1,4 @@
 #!/usr/bin/env python3.6
-#!/usr/bin/env python3.6
 import os
 import shutil
 
@@ -9,7 +8,6 @@ engine_name = 'bellatrix.litebox.ru_23_06_2022_06_45_48_ENGINE.FDB'
 phone = '79085314351'
 NAME_BASE = 'billing_prod3'
 billin_dir = '/home/evgesha/code/'
-
 CONTAINER_NAME = 'billing_postgres'
 
 LAYER_PLACE = '/'.join([layer_path, layer_name])
@@ -42,18 +40,18 @@ def restore_db_from_dump():
 	restore_db()
 	upload_dump()
 
-def db_operations():
+def do_postgres_job():
 	remove_db()
 	restore_db_from_dump()
 	
-def move_layer():
+def move_firebird_files():
 	os.chdir(layer_path)
 		# copy layer from     to
 	shutil.copy2(LAYER_PLACE, LAYER_STORAGE)
 	shutil.copy2(ENGINE_PLACE, ENGINE_STORAGE)
 	print('layer moved')
 
-def create_super_user():
+def create_super_user_in_django():
 	os.chdir('/home/evgesha/code/billing')
 	res = os.system('''echo "from django.contrib.auth.models import User; User.objects.create_superuser(
 		'user', 'leningrad@spb.ru', '1q2w3e4r')" | /home/evgesha/code/billing/env37/bin/python3 manage.py shell''')
@@ -68,12 +66,11 @@ def notify_me():
 	os.system('notify-send "upload status"  "script is over"')
 
 def create_sql_with_layer():
-
 	engine_work = """/home/evgesha/code/storecraft/.deploy/data/firebird/engine_work.sql"""
 	layer_work = """/home/evgesha/code/storecraft/.deploy/data/firebird/layer_work.sql"""
 	my_file = open(engine_work, 'w')
 	my_file.write(f"""CONNECT '/firebird/data/{engine_name}' USER 'SYSDBA' PASSWORD 'masterkey';
-		update engine_users eu set eu.passwd='pbkdf2_sha256$200$gIdhBJC5WAgz$0q2L7V5WcuodEMI62ULACYVo/rA3JhX6qwsmi0leptk=' 
+		update engine_users eu set eu.passwd='pbkdf2_sha256$200$XfwDobs6u49X$O6lr8NFZiuAHwrcBfe+sSJhDQcjOV+DGG6j1HCNCtxU=' 
 		where eu.phonenumber = '{phone}';""")
 	my_file.close()
 	my_file = open(layer_work, 'w')
@@ -83,34 +80,36 @@ def create_sql_with_layer():
 			
 	return [engine_work, layer_work]
 
-def replace_engine_password():
-	sql_path = create_sql_with_layer()
+def do_job_with_firebird():
+	sql_paths = create_sql_with_layer()
 	os.chdir('/home/evgesha/code/storecraft/.deploy/data/firebird')
 	os.system('docker exec -it firebird isql -q -i firebird/data/engine_work.sql')
 	os.system('docker exec -it firebird isql -q -i firebird/data/layer_work.sql')
-	[os.remove(path) for path in sql_path]
+	[os.remove(path) for path in sql_paths]
+
+def make_migrations():
+	os.chdir('/home/evgesha/code/storecraft')
+	try:
+		os.system('make migrations')
+	except:
+		pass
 
 def main():
 	remove_connection_to(CONTAINER_NAME)
-	db_operations()
+	do_postgres_job()
 	# TODO move layer and restore db to async
 	remove_connection_to('storecraft', need_to_up_container=False)
-	
 	try:
-		move_layer()
+		move_firebird_files()
 	except Exception as e:
 		print(e)
-	replace_engine_password()
-	create_super_user()
-	
+	do_job_with_firebird()
+	create_super_user_in_django()
 	kill_server()
+	make_migrations()
 	notify_me()
-
+	
 
 if __name__ == '__main__':
 	main()
-	
-
-	
-	
 	
