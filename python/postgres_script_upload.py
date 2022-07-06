@@ -94,6 +94,10 @@ def make_migrations():
 	except:
 		pass
 
+def up_billing_again():
+	os.chdir('/home/evgesha/code/billing')
+	os.system('env37/bin/python3 manage.py runserver 0.0.0.0:8000')
+
 def main():
 	remove_connection_to(CONTAINER_NAME)
 	do_postgres_job()
@@ -108,7 +112,7 @@ def main():
 	kill_server()
 	make_migrations()
 	notify_me()
-	
+	up_billing_again()
 
 if __name__ == '__main__':
 	main()
