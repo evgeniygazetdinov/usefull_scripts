@@ -1,0 +1,132 @@
+
+
+<script>
+  setTimeout(function() {//Ниже вставьте id блоков, которые скрываем, первый останется открыт (если надо больше, просто допиши id через запятую)
+  var hidden = ['#rec467815764', '#rec467870123', '#rec467870134', '#rec467870175', '#rec467870194'];
+  //Ниже вставьте id блока меню ME606
+  var tabBlock = $('#rec467815761').addClass('anku-me606');
+  $(hidden[0]).addClass('content');
+  var i = 0;
+  var number = 1;
+  for (let i = 1; i < hidden.length; i++) {
+    $(hidden[i]).addClass('content hidden');
+  };
+
+  $('.anku-me606 .t976__list-item:first a').addClass('t-active');
+  // 
+  $('.anku-me606 .t976__list-item').click(function(e) {
+    e.preventDefault();
+    number = $('.t976__list-item').index(this);
+    $('.anku-me606 .t976__list-item a').removeClass('t-active');
+    $('.anku-me606 .t976__list-item:eq(' + number + ') a').addClass('t-active');
+    $('.content').addClass('hidden');
+    $(hidden[number]).removeClass('hidden');
+    setTimeout(function() {
+      t_lazyload_update()
+    }, 100);
+  });
+  }, 1000);
+</script>
+<style>
+  .hidden {
+    display: none !important;
+  }
+</style>
+<!DOCTYPE HTML>
+<html>
+
+<body style="dark">
+  <style>
+    .hidden{
+      display:none;
+    }
+  </style>
+  <p>Before the script...</p>
+ <div id="main" style="display:flex; justify-content: center;">
+  <div class="hidden" style=></div> 
+ </div>
+  <script>
+    let hideClass = "hidden";
+    let unHideAllclass = 'all'
+    let colors = ['red', 'blue', 'green', unHideAllclass];
+    function toggle(el,classname){
+      if(el.classList.contains(classname)){
+          el.classList.remove(classname)
+        }
+      else{
+        el.classList.add(classname)
+      }
+    }
+    function unHideElement(el){
+      el.classList.remove(hideClass)
+    }
+    function make_blocks(){
+      for(let i=0;i<6;i++){
+        let number = Math.floor(Math.random() * (2 - 0 + 1)) + 0;
+        var div = document.createElement("div");
+        div.style.width = "100px";
+        div.style.height = "100px";
+        div.style.margin = "30px";
+        div.style.background = colors[number]
+        div.style.color = "white";
+        div.innerHTML = "Hello"
+        div.id=colors[number];
+        document.getElementById("main").appendChild(div);
+      }
+    }
+
+    function hideBlocksByColor(color){
+      mainBlock = document.getElementById("main");
+      for(let i=0;i<mainBlock.children.length;i++){
+        // ecли элемент равен блоку мы его ставим открытым
+        if(mainBlock.children[i].id === color){
+         mainBlock.children[i].classList.remove(hideClass)
+        }
+        //остальные элементы закрывакс
+        else{
+          mainBlock.children[i].classList.add(hideClass)
+        }
+        
+
+      }
+    }
+
+    function unHideAll(){
+        for(let i=0;i<mainBlock.children.length;i++){
+            unHideElement(mainBlock.children[i]);
+        }
+    }
+
+    function make_buttons(){
+      for(let i=0;i<colors.length;i++){
+      var button = document.createElement("button");
+      button.innerHTML = colors[i];
+      // 2. Append somewhere
+      var body = document.getElementsByTagName("body")[0];
+      body.appendChild(button);
+
+      button.addEventListener ("click", function() {
+          currentColor = this.innerHTML;
+          if (currentColor === unHideAllclass){
+            //открыть все
+            unHideAll();
+          }
+          else{
+            //скрыть все кроме этого класса
+            hideBlocksByColor(currentColor);
+          }
+          
+        
+      }
+      )  
+  }
+  }
+  make_blocks();
+  make_buttons();
+  </script>
+
+  <p>...After the script.</p>
+
+</body>
+
+</html>
