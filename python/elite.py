@@ -14,25 +14,24 @@ def calPoints(ops):
                 isnumber =True
                 last_numnber = list_with_number[-abs(counter)]
             counter += 1
-        return last_numnber
+        return -abs(counter)
 
     def word_cases(case, list_with_values):
         if case == 'C':
-           del ops[-1]
-           del ops[-1]
+           list_with_values.remove(case)
+           case =  None
         if case == 'D':
-            last_value = find_first_number_in_list(list_with_values)
-            return int(last_value) * 2
+            last_index = find_first_number_in_list(list_with_values)
+            list_with_values.remove(case)
+            case = int(list_with_number[last_index]) * 2
         elif case == '+':
-                pass
-
+            last_index = find_first_number_in_list(list_with_values)
+            prev_last_index = last_index -1
+            list_with_values.remove(case)
+            return int(list_with_values[last_index]) + int(list_with_values[prev_last_index])
         else:
            if  case.isdigit():
             return case
-        #     print(case)
-        #     list_with_values.pop()
-        #     if(list_with_values[-1].isdigit()):
-        #         return  int(list_with_values[-2]) + int(list_with_values[-1])
     
     val=  []
     for value in ops:
