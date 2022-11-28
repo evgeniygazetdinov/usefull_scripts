@@ -6,7 +6,7 @@ layer_path = '/home/evgesha/Documents'
 layer_name = 'OOO_Romashka_=210816_O9E80uI-MYSHOP.FDB'
 engine_name = 'onxteam2.litebox.ru_14_11_2022_03_07_38_ENGINE.FDB'
 phone = '79085314351'
-NAME_BASE = 'lbservice'
+NAME_BASE = 'billing'
 billin_dir = '/home/evgesha/code/'
 CONTAINER_NAME = 'billing_postgres'
 
@@ -26,7 +26,9 @@ def remove_connection_to(container, need_to_up_container = True):
 		os.system(f'''{CONTAINER_OP} start {container} ''')
 
 def remove_db():
-	os.system(f'''{DB_OPERATION} "DROP DATABASE {NAME_BASE}"''')
+	# TODO ADD -d postgres
+	operation = f'''{DB_OPERATION} "DROP DATABASE {NAME_BASE} WITH (FORCE)"'''
+	os.system(operation)
 	print('database removed')
 
 def restore_db():
@@ -36,11 +38,13 @@ def restore_db():
 
 def upload_dump():
 	print('begin upload dump')
-	os.system(f'''cat {DUMP_NAME} | docker exec -i {CONTAINER_NAME} psql -U {POSTGRES_USER} -d {NAME_BASE}''')
+	operation = f'''cat {DUMP_NAME} | docker exec -i {CONTAINER_NAME} psql -U {POSTGRES_USER} -d {NAME_BASE}'''
+	os.system(operation)
 	print('upload over')
 
 def restore_db_from_dump():
-	restore_db()
+	# remove_db()
+	# restore_db()
 	upload_dump()
 
 def do_postgres_job():
