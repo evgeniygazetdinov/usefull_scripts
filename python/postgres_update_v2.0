@@ -1,0 +1,43 @@
+import sys, os
+
+DUMP_NAME = os.getcwd() + "/" + sys.argv[1]
+POSTGRES_USER = "billing"
+POSTGRES_PASSWORD = POSTGRES_USER
+NAME_BASE = POSTGRES_USER
+CONTAINER_NAME = "billing_postgres"
+OPERATION_BODY = f"sudo docker exec -it {CONTAINER_NAME}"
+DB_OPERATION = OPERATION_BODY + " psql -U billing -c"
+
+
+def remove_db():
+
+    oper = f'''{OPERATION_BODY} psql -U {POSTGRES_USER} -d postgres -c  "DROP DATABASE {NAME_BASE} WITH (FORCE)"'''
+    os.system(oper)
+
+
+def restore_db():
+    oper = (
+        f"""{OPERATION_BODY} psql -U {POSTGRES_USER} -d postgres -c  "create user {POSTGRES_USER} with encrypted password"""
+        + f"'{POSTGRES_PASSWORD}'"
+        + '"'
+    )
+    os.system(oper)
+    oper = f'''{OPERATION_BODY} psql -U {POSTGRES_USER} -d postgres -c  "CREATE DATABASE {NAME_BASE}"'''
+    os.system(oper)
+
+
+def upload_dump():
+    print("begin upload dump")
+    operation = f"""cat {DUMP_NAME} | docker exec -i {CONTAINER_NAME} psql -U billing -d billing"""
+    os.system(operation)
+    print("upload over")
+
+
+def main():
+    remove_db()
+    restore_db()
+    upload_dump()
+
+
+if __name__ == "__main__":
+    main()
