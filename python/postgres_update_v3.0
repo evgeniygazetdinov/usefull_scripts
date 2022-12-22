@@ -1,19 +1,24 @@
 import sys, os
-
-DUMP_NAME = os.getcwd() + "/" + sys.argv[1]
+if len(sys.argv) > 1:
+    DUMP_NAME = os.getcwd() + "/" + sys.argv[1]
+else:
+    DUMP_NAME = os.getcwd() + "\\" + "billing_staging_2022121465139_19597.sql"
 POSTGRES_USER = "billing"
 POSTGRES_PASSWORD = POSTGRES_USER
 NAME_BASE = POSTGRES_USER
 CONTAINER_NAME = "billing_postgres"
-OPERATION_BODY = f"sudo docker exec -it {CONTAINER_NAME}"
+SUPERUSER = 'john'
+SUPERUSER_PASS = 'securePass1'
+if sys.platform == "win32":
+    OPERATION_BODY = f"docker exec -it {CONTAINER_NAME}"
+else:
+    OPERATION_BODY = f"sudo docker exec -it {CONTAINER_NAME}"
 DB_OPERATION = OPERATION_BODY + " psql -U billing -c"
 
 
 def remove_db():
-
-    oper = f'''{OPERATION_BODY} psql -U {POSTGRES_USER} -d postgres -c  "DROP DATABASE {NAME_BASE} WITH (FORCE)"'''
+    oper = f'''{OPERATION_BODY} psql -U {SUPERUSER} -d postgres -c  "DROP DATABASE {NAME_BASE}  WITH (FORCE)"'''
     os.system(oper)
-
 
 def restore_db():
     oper = (
@@ -28,7 +33,11 @@ def restore_db():
 
 def upload_dump():
     print("begin upload dump")
-    operation = f"""cat {DUMP_NAME} | docker exec -i {CONTAINER_NAME} psql -U billing -d billing"""
+    if not sys.platform == "win32":
+        operation = f"""cat {DUMP_NAME} | docker exec -i {CONTAINER_NAME} psql -U billing -d billing"""
+    else:
+        # running on windows
+        operation = f"""type  {DUMP_NAME} | docker exec -i {CONTAINER_NAME} psql -U billing -d billing"""
     os.system(operation)
     print("upload over")
 
