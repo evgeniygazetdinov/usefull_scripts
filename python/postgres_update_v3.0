@@ -1,8 +1,8 @@
 import sys, os
 if len(sys.argv) > 1:
-    DUMP_NAME = os.getcwd() + "/" + sys.argv[1]
+    DUMP_NAME = os.getcwd() + "\\" + sys.argv[1]
 else:
-    DUMP_NAME = os.getcwd() + "\\" + "billing_staging_2022121465139_19597.sql"
+    DUMP_NAME = os.getcwd() + "\\" + "billing_staging_2022122663520_35478.sql"
 POSTGRES_USER = "billing"
 POSTGRES_PASSWORD = POSTGRES_USER
 NAME_BASE = POSTGRES_USER
@@ -36,6 +36,7 @@ def upload_dump():
     if not sys.platform == "win32":
         operation = f"""cat {DUMP_NAME} | docker exec -i {CONTAINER_NAME} psql -U billing -d billing"""
     else:
+        print('here')
         # running on windows
         operation = f"""type  {DUMP_NAME} | docker exec -i {CONTAINER_NAME} psql -U billing -d billing"""
     os.system(operation)
