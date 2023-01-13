@@ -5,7 +5,7 @@ else:
     DUMP_NAME = os.getcwd() + "\\" + "billing_staging_2022122663520_35478.sql"
 POSTGRES_USER = "billing"
 POSTGRES_PASSWORD = POSTGRES_USER
-NAME_BASE = POSTGRES_USER
+NAME_BASE = 'billing'
 CONTAINER_NAME = "billing_postgres"
 SUPERUSER = 'john'
 SUPERUSER_PASS = 'securePass1'
@@ -40,7 +40,7 @@ def upload_dump():
     else:
         print('here', DUMP_NAME)
         # running on windows
-        operation = f"""type  {DUMP_NAME} | docker exec -i {CONTAINER_NAME} psql -U billing -d billing"""
+        operation = f"""type  {DUMP_NAME} | docker exec -i {CONTAINER_NAME} psql -U billing -d {NAME_BASE}"""
     os.system(operation)
     print("upload over")
 
@@ -51,9 +51,16 @@ def move_files():
     print(result)
     command = f'copy {result} C:\\Users\\evgesha\\code\\storecraft\\.deploy\\data\\firebird\\'
     os.popen(command)
+    result = os.getcwd()+'\\'+ 'onxteam2.litebox.ru_26_12_2022_07_52_15_ENGINE.FDB'
+    command = f'copy {result} C:\\Users\\evgesha\\code\\storecraft\\.deploy\\data\\firebird\\'
+    os.popen(command)
+
 
 def stop_storecraft():
     os.system('cd C:\\Users\\evgesha\\code\\storecraft\\ && make stop')
+
+def start_storecraft():
+    os.system("cd C:\\Users\\evgesha\\code\\storecraft\\modules && C:\\Users\\evgesha\\code\\storecraft\\venv\\Scripts\\python.exe startMYSHOP.py --server1=http --socket_port1=8101 --thread_pool=4")
 
 def main():
     start_postgres()
@@ -63,6 +70,8 @@ def main():
     stop_storecraft()
     move_files()
     start_postgres()
+    start_storecraft()
+
     
 
 if __name__ == "__main__":
