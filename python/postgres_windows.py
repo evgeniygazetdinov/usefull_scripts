@@ -9,6 +9,8 @@ NAME_BASE = 'billing'
 CONTAINER_NAME = "billing_postgres"
 SUPERUSER = 'john'
 SUPERUSER_PASS = 'securePass1'
+layer = sys.argv[2]
+engine = sys.argv[3]
 if sys.platform == "win32":
     OPERATION_BODY = f"docker exec -it {CONTAINER_NAME}"
 else:
@@ -47,11 +49,11 @@ def upload_dump():
 def move_files():
     os.chdir('Downloads\\')
     print(os.getcwd())
-    result = os.getcwd()+'\\'+ 'OOO_ONIKS_=221223_4BNntFr-MYSHOP.FDB'
+    result = os.getcwd()+'\\'+ layer
     print(result)
-    command = f'copy {result} C:\\Users\\evgesha\\code\\storecraft\\.deploy\\data\\firebird\\'
+    command = f'copy {result} C:\\Users\\evgesha\\code\\storecraft\\.deploy\\data\\firebird\\storage'
     os.popen(command)
-    result = os.getcwd()+'\\'+ 'onxteam2.litebox.ru_26_12_2022_07_52_15_ENGINE.FDB'
+    result = os.getcwd()+'\\'+ engine
     command = f'copy {result} C:\\Users\\evgesha\\code\\storecraft\\.deploy\\data\\firebird\\'
     os.popen(command)
 
@@ -61,6 +63,9 @@ def stop_storecraft():
 
 def start_storecraft():
     os.system("cd C:\\Users\\evgesha\\code\\storecraft\\modules && C:\\Users\\evgesha\\code\\storecraft\\venv\\Scripts\\python.exe startMYSHOP.py --server1=http --socket_port1=8101 --thread_pool=4")
+
+def kill_storecraft():
+    os.system('taskkill /F /IM python.exe')
 
 def main():
     start_postgres()
