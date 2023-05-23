@@ -1,3 +1,4 @@
+#!/Library/Frameworks/Python.framework/Versions/3.8/bin/python3
 import os
 import sys
 
@@ -14,6 +15,7 @@ BILLING_PATH = '/Users/ev/code/billing'
 STORECRAFT_PATH = '/Users/ev/code/storecraft'
 
 BILLING_CONFIG = {'calls': STANDART_CALLS, 'dir': BILLING_PATH}
+STORECRAFT_CONFIG = {'calls': STORECRAFT_CALLS, 'dir': STORECRAFT_PATH}
 
 
 def billing_calls(func):
@@ -37,6 +39,8 @@ def get_files_from_diff(files_path):
 
 def make_string_for_linter_call(files_path):
     diff_files = get_files_from_diff(files_path)
+    # filter only py files
+    print(diff_files)
     return ' '.join(diff_files)
 
 def prepare_files(files_path):
@@ -48,13 +52,28 @@ def run_linter(linter_type, files):
 
 def linter_it(linter_list, string_with_files):
     for linter in linter_list:
+        print(20 * '*', f'call {linter}', 20 * '*')
         run_linter(linter, string_with_files)
 
-def main():
-    config = BILLING_CONFIG
-    files = prepare_files(config['dir'])
-    linter_it(config['calls'], files)
+def find_config_by_path():
+    pass
+
+def run_configuration(config, file):
+    if file:
+        linter_it(config['calls'], file)
+    else:
+        files = prepare_files(config['dir'])
+        linter_it(config['calls'], files)
+
+def main(file=False):
+    # TODO FIND CONFIG BY PATH
+    config = STORECRAFT_CONFIG
+    run_configuration(config, file)
 
 
 if __name__ == '__main__':
-    main()
+    if len(sys.argv) > 1:
+        file = sys.argv[1]
+        main(file)
+    else:
+        main()
