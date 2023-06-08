@@ -35,7 +35,9 @@ def call_linter(file=False, call_types=False):
 
 def get_files_from_diff(files_path):
     repo = Repo(files_path)
-    return [ item.a_path for item in repo.index.diff(None)]
+    files = [ item.a_path for item in repo.index.diff(None)]
+    only_py = [f for f in files if f.endswith('.py')]
+    return only_py
 
 def make_string_for_linter_call(files_path):
     diff_files = get_files_from_diff(files_path)
