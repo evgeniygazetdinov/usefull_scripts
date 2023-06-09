@@ -7,6 +7,7 @@ from git import Repo
 PYLINT = 'pylint'
 FLAKE = 'flake8'
 MYPY = 'mypy'
+BILLING_FLAG = '-b'
 
 STANDART_CALLS = [PYLINT, FLAKE]
 STORECRAFT_CALLS = [PYLINT, FLAKE, MYPY]
@@ -67,15 +68,21 @@ def run_configuration(config, file):
         files = prepare_files(config['dir'])
         linter_it(config['calls'], files)
 
-def main(file=False):
+def main(config, file=False):
     # TODO FIND CONFIG BY PATH
-    config = STORECRAFT_CONFIG
+    print(config)
     run_configuration(config, file)
 
 
 if __name__ == '__main__':
-    if len(sys.argv) > 1:
+    print(os.path.dirname(os.path.realpath(__file__)))
+    config = STORECRAFT_CONFIG
+    if BILLING_FLAG in sys.argv:
+        config = BILLING_CONFIG
+        print('accepted billing config')
+    if len(sys.argv) > 1 and sys.argv[1] != BILLING_FLAG:
+        print('get logic for separated file')
         file = sys.argv[1]
-        main(file)
+        main(config, file)
     else:
-        main()
+       main(config)
