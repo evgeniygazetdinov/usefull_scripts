@@ -1,23 +1,18 @@
 import os
 import sys
+import re
 
-def is_fbk_file(name):
-    """find is fbk file"""
+
+def find_in(name, specific):
+    """check is by patern in  file"""
     res = False
-    if '.FBK' in name:
+    if specific in name:
         res = True
     return res
 
 def is_name_has_more_whan_one_dot(name):
     """counting dots inside string"""
     return name.count('.') > 1
-
-def is_engine_file(name):
-    """check is engine file"""
-    res = False
-    if 'ENGINE' in name:
-        res = True
-    return res
 
 def check_fdb_exist_already(fdb_file):
     """rm already converted file for run without errors"""
@@ -35,18 +30,27 @@ def convert_from_fbk_to_fdb(fbk_file):
     command=f"docker exec -it firebird gbak -user SYSDBA -password masterkey -C /firebird/data/{FBK} /firebird/data/{FDB};"
     print(command)
     os.system(command)
+    return FDB
 
 
 def main(filename):
     """rename firebird file if it need"""
-    if is_fbk_file(filename): 
-        if is_name_has_more_whan_one_dot(filename) and is_engine_file:
+    is_layer_file = False
+    if find_in(filename, '.FBK'): 
+        if is_name_has_more_whan_one_dot(filename) and find_in(filename, 'ENGINE'):
             names_list = filename.split('.') 
             first_name = names_list[0]
             os.system(f'mv {filename} {first_name}.FBK')
             filename = first_name + '.FBK'
-        
-        convert_from_fbk_to_fdb(filename)
+        if find_in(filename, 'MYSHOP'):
+            is_layer_file = True
+            name_list = re.split('(_\d{2}_\d{2}_\d{4}_\d{2}_\d{2}_\d{2})', filename, 1)
+            name_without_date = name_list[0] + name_list[-1]
+            os.system(f'mv {filename} {name_without_date}')
+            filename = name_without_date
+        converted_fdb_file =convert_from_fbk_to_fdb(filename)
+        if is_layer_file:
+            os.system(f'mv {converted_fdb_file} storage/')
         
     
 if __name__ == '__main__':
