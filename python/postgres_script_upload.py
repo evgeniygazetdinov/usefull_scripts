@@ -1,6 +1,7 @@
 #!/usr/bin/env python3.6
 import os
 import shutil
+import sys
 
 layer_path = '/home/evgesha/Documents'
 layer_name = 'OOO_Romashka_=210816_O9E80uI-MYSHOP.FDB'
@@ -14,7 +15,7 @@ LAYER_PLACE = '/'.join([layer_path, layer_name])
 LAYER_STORAGE = '/home/ev/code/storecraft/.deploy/data/firebird/storage/'
 ENGINE_STORAGE = '/home/ev/code/storecraft/.deploy/data/firebird/'
 ENGINE_PLACE = '/'.join([layer_path, engine_name])
-DB_OPERATION = f'sudo docker exec -it {CONTAINER_NAME} psql -U billing -c'
+DB_OPERATION = f"sudo docker exec -it {CONTAINER_NAME} psql -U billing -d postgres -c"
 CONTAINER_OP = 'sudo docker'
 DUMP_NAME = 'billing_staging_202211253194_42137.sql'
 POSTGRES_USER='billing'
@@ -29,26 +30,29 @@ def remove_db():
 	# TODO ADD -d postgres
 	operation = f'''{DB_OPERATION} "DROP DATABASE {NAME_BASE} WITH (FORCE)"'''
 	os.system(operation)
-	print('database removed')
+	print('database removed','8'*20)
 
 def restore_db():
-	os.system(f"{DB_OPERATION} create user {POSTGRES_USER} with encrypted password '{POSTGRES_PASSWORD}'")
+	# os.system(f"{DB_OPERATION} create user {POSTGRES_USER} with encrypted password '{POSTGRES_PASSWORD}'")
 	os.system(f'''{DB_OPERATION} "create DATABASE {NAME_BASE} with owner {POSTGRES_USER}"''')
 	print('new database created')
 
-def upload_dump():
+def upload_dump(file):
 	print('begin upload dump')
+	DUMP_NAME = file
 	operation = f'''cat {DUMP_NAME} | docker exec -i {CONTAINER_NAME} psql -U {POSTGRES_USER} -d {NAME_BASE}'''
 	os.system(operation)
 	print('upload over')
+	# create_super_user_in_django()
 
-def restore_db_from_dump():
-	# remove_db()
-	# restore_db()
-	upload_dump()
+def restore_db_from_dump(file):
+	remove_db()
+	restore_db()
+	upload_dump(file)
 
 def do_postgres_job():
 	remove_db()
+	restore_db()
 	restore_db_from_dump()
 	
 def move_firebird_files():
@@ -112,24 +116,26 @@ def up_billing_again():
 	os.chdir('/home/evgesha/code/billing')
 	os.system('env37/bin/python3 manage.py runserver 0.0.0.0:8000')
 
-def main():
-	# remove_connection_to(CONTAINER_NAME)
-	# do_postgres_job()
-	# # TODO move layer and restore db to async
-	# #remove_connection_to('storecraft', need_to_up_container=False)
-	# # try:
-	# # 	move_firebird_files()
-	# # except Exception as e:
-	# # 	print(e)
+def main(file):
+	remove_connection_to(CONTAINER_NAME)
+	restore_db_from_dump(file)
+	# TODO move layer and restore db to async
+	#remove_connection_to('storecraft', need_to_up_container=False)
+	# try:
+	# 	move_firebird_files()
+	# except Exception as e:
+	# 	print(e)
 	# do_job_with_firebird()
 	# create_super_user_in_django()
 	# kill_server()
 	# # make_migrations()
 	# notify_me()
 	# up_billing_again()
-	restore_db_from_dump()
+	# restore_db_from_dump(file)
+	create_super_user_in_django()
 
 
 if __name__ == '__main__':
-	main()
+	file = sys.argv[1]
+	main(file)
 	
