@@ -1,0 +1,10 @@
+
+path = 'Х.xlsx'
+ 
+import pandas as pd
+
+df = pd.read_excel(path)
+
+
+data = pd.read_excel(path,usecols=['global_user_id']) 
+print(",".join([str(x) for x in data.global_user_id]))
