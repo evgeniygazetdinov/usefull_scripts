@@ -1,0 +1,30 @@
+
+
+import pandas as pd
+fields = ['name', 'name_std']
+
+df = pd.read_csv('cities_region_202312191910.csv', skipinitialspace=True, usecols=fields)
+# See the keys
+names = [i for i in df.name_std]
+def make_names_for_translate(names):
+    with open("english.txt", "w+") as text_file:
+        for res in names:
+            text_file.write('\n')
+            text_file.write(res)
+
+make_names_for_translate(names)
+
+s = {}
+result = []
+with open('/home/ev/russian.txt','r') as file1:
+    with open('/home/ev/english.txt','r') as file2:
+        transleted_lines = [d.strip() for d in file1.readlines()]
+        not_transleted_lines = [x.strip() for x in file2.readlines()]
+        s = dict(zip(transleted_lines, not_transleted_lines))
+for key, value in s.items():
+    result.append(f'''msgid "{value}"\nmsgstr "{key}"''')
+with open("Output.txt", "a+") as text_file:
+    for res in result:
+        text_file.write('\n')
+        text_file.write(res)
+        text_file.write('\n')
