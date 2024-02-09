@@ -1,0 +1,20 @@
+//https://rosstat.gov.ru/bgd/regl/b11_04/IssWWW.exe/Stg/d04/3-p03.htm
+
+
+function parseTable(){
+    var counter = 0;
+    table = document.querySelectorAll('table')[0];
+    var AllP = table.querySelectorAll('p'); //select all p
+    for(var i=0; i<AllP.length;i++){
+        
+        
+        if(counter ==4){
+            console.log(AllP[i].innerHTML);
+            counter = 0;
+        }
+        counter++; //just text
+    };
+}
+
+
+parseTable()
