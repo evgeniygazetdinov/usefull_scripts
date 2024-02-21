@@ -1,14 +1,17 @@
 s = {}
 result = []
-with open('city_russian_translated.txt','r') as file1:
-    with open('city_russian_not_translated','r') as file2:
-        transleted_lines = [d.strip() for d in file1.readlines()]
-        not_transleted_lines = [x.strip() for x in file2.readlines()]
-        s = dict(zip(transleted_lines, not_transleted_lines))
+with open('russian.txt','r') as file1:
+    with open('english.txt','r') as file2:
+        transleted_lines = [d.split(", ") for d in file1.readlines()]
+        not_transleted_lines = [x.split(", ") for x in file2.readlines()]
+        s = dict(zip(transleted_lines[0], not_transleted_lines[0]))
+print(s)
 for key, value in s.items():
-    result.append(f'''msgid "{value}"\nmsgstr "{key}"''')
-with open("Output.txt", "a+") as text_file:
+    result.append("{" + '"' + value + '"' +':' + '"' +key + '"' +'},')
+with open("res.json", "w+") as text_file:
+    text_file.write('[')
     for res in result:
         text_file.write('\n')
         text_file.write(res)
         text_file.write('\n')
+    text_file.write(']')
