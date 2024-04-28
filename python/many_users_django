@@ -1,0 +1,27 @@
+import string
+import random
+from django.core.management.base import BaseCommand
+
+
+
+class Command(BaseCommand):
+
+
+    def id_generator(self, size=10, chars=string.ascii_uppercase + string.digits):
+        return ''.join(random.choice(chars) for _ in range(size))
+
+
+    def handle(self, *args, **options):
+        import django
+        django.setup()
+        from django.contrib.auth.models import User
+        User = django.contrib.auth.get_user_model()
+        for _ in range(879453):
+            random = self.id_generator()
+            u = User(username=random)
+            u.set_password('admin2')
+            u.gender = 'm'
+            u.language = 'RU'
+            u.is_superuser = True
+            u.is_staff = True
+            u.save()
