@@ -37,6 +37,18 @@
             ],
             "console": "integratedTerminal"
             }
+            {
+      "name": "FastAPI Custom Launcher",
+      "type": "python",
+      "request": "launch",
+      "module": "main",
+      "justMyCode": false,
+      "console": "integratedTerminal",
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}",
+        "UVICORN_RELOAD": "true"
+      }
+    }
 
     ]
 }
