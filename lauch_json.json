@@ -1,54 +1,56 @@
 {
-    // Use IntelliSense to learn about possible attributes.
-    // Hover to view descriptions of existing attributes.
-    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
-    "version": "0.2.0",
-    "configurations": [
-        {
-            "name": "Python Debugger: Current File",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "${file}",
-            "console": "integratedTerminal",
-            "args": [],
-        },
-       {
-            "name": "Python Test Debugger",
-            "type": "debugpy",
-            "request": "launch",
-            "console": "integratedTerminal",
-            "justMyCode": false,
-            "envFile": "${workspaceFolder}/venv",  // Путь к .env
-            "module": "pytest",
-            "python": "${workspaceFolder}/venv/bin/python",  // Путь к интерпретатору
-            "env": {"PYTHONPATH": "${workspaceFolder}"}
-   
-        },
-         {
-            "name": "Debug Single Test",
-            "type": "python",
-            "request": "launch",
-            "module": "pytest",
-            "python": "${workspaceFolder}/venv/bin/python",  // Путь к интерпретатору
-            "env": {"PYTHONPATH": "${workspaceFolder}"},
-            "args": [
-                "test/test_core.py::test_with_something",  // Запускает только выбранный тест
-                "-v"
-            ],
-            "console": "integratedTerminal"
-            }
-            {
-      "name": "FastAPI Custom Launcher",
-      "type": "python",
-      "request": "launch",
-      "module": "main",
-      "justMyCode": false,
-      "console": "integratedTerminal",
-      "env": {
-        "PYTHONPATH": "${workspaceFolder}",
-        "UVICORN_RELOAD": "true"
+   "version":"0.2.0",
+   "configurations":[
+      {
+         "name":"Python Debugger: Current File",
+         "type":"debugpy",
+         "request":"launch",
+         "program":"__main__.py",
+         "console":"integratedTerminal",
+         "python":"/usr/bin/python3",
+         "args":[
+            "login"
+         ]
+      },
+      {
+         "name":"Python Test Debugger",
+         "type":"debugpy",
+         "request":"launch",
+         "console":"integratedTerminal",
+         "justMyCode":false,
+         "envFile":"${workspaceFolder}/venv",
+         "module":"pytest",
+         "python":"/usr/bin/python3",
+         "env":{
+            "PYTHONPATH":"${workspaceFolder}"
+         }
+      },
+      {
+         "name":"Debug Single Test",
+         "type":"python",
+         "request":"launch",
+         "module":"pytest",
+         "python":"/usr/bin/python3",
+         "env":{
+            "PYTHONPATH":"${workspaceFolder}"
+         },
+         "args":[
+            "test/test_core.py::test_with_something",
+            "-v"
+         ],
+         "console":"integratedTerminal"
+      },
+      {
+         "name":"FastAPI Custom Launcher",
+         "type":"python",
+         "request":"launch",
+         "module":"main",
+         "justMyCode":false,
+         "console":"integratedTerminal",
+         "env":{
+            "PYTHONPATH":"${workspaceFolder}",
+            "UVICORN_RELOAD":"true"
+         }
       }
-    }
-
-    ]
+   ]
 }
