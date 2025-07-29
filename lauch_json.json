@@ -6,6 +6,7 @@
          "type":"debugpy",
          "request":"launch",
          "program":"__main__.py",
+         "justMyCode":false,
          "console":"integratedTerminal",
          "python":"/usr/bin/python3",
          "args":[
