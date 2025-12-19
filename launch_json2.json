@@ -1,0 +1,67 @@
+{
+    "version":"0.2.0",
+    "configurations":[
+       {
+          "name":"Python Debugger: Current File",
+          "type":"debugpy",
+          "request":"launch",
+          "program":"cli.py",
+          "justMyCode":false,
+          "console":"integratedTerminal",
+          "python":"/usr/bin/python3",
+          "args":[
+             "audit-start", "--node-addr", "192.168.98.212", "--cluster-addr", "192.168.98.211,192.168.98.212,192.168.98.213,192.168.98.214,192.168.98.215"
+          ]
+       },
+       {
+          "name":"Python Test Debugger",
+          "type":"debugpy",
+          "request":"launch",
+          "console":"integratedTerminal",
+          "justMyCode":false,
+          "envFile":"${workspaceFolder}/venv",
+          "module":"pytest",
+          "python":"/usr/bin/python3",
+          "env":{
+             "PYTHONPATH":"${workspaceFolder}"
+          }
+       },
+       {
+          "name":"Debug Single Test",
+          "type":"python",
+          "request":"launch",
+          "module":"pytest",
+          "python":"/usr/bin/python3",
+          "env":{
+             "PYTHONPATH":"${workspaceFolder}"
+          },
+          "args":[
+             "test/test_core.py::test_with_something",
+             "-v"
+          ],
+          "console":"integratedTerminal"
+       },
+       {
+             "name": "Debug pip install -e",
+             "type": "python",
+             "request": "launch",
+             "module": "pip",
+             "args": ["install", "-e", ".", "--break-system-packages"],
+             "console": "integratedTerminal",
+             "justMyCode": false,
+             "subProcess": true
+       },
+       {
+          "name":"FastAPI Custom Launcher",
+          "type":"python",
+          "request":"launch",
+          "module":"main",
+          "justMyCode":false,
+          "console":"integratedTerminal",
+          "env":{
+             "PYTHONPATH":"${workspaceFolder}",
+             "UVICORN_RELOAD":"true"
+          }
+       }
+    ]
+ }
