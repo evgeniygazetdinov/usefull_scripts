@@ -1,0 +1,5 @@
+wget https://bootstrap.pypa.io/get-pip.py &&
+python3 get-pip.py --break-system-packages &&
+python3 -m pip install virtualenv --break-system-packages &&
+python3 -m virtualenv env &&
+source env/bin/activate
