@@ -1,7 +1,6 @@
 version: '3.8'
 
 services:
-  # Home Assistant - основной мозг
   homeassistant:
     image: ghcr.io/home-assistant/home-assistant:stable
     container_name: homeassistant
@@ -12,7 +11,17 @@ services:
       - /run/dbus:/run/dbus:ro
     environment:
       - TZ=Europe/Moscow
-    # Порт 8123 доступен через network_mode host
+
+  ollama:
+    image: ollama/ollama
+    container_name: ollama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    environment:
+      - OLLAMA_HOST=0.0.0.0
 
   whisper:
     image: rhasspy/wyoming-whisper
@@ -30,21 +39,33 @@ services:
       - "10200:10200"
     command: --voice ru_RU-irina-medium
 
+  openwakeword:
+    image: rhasspy/wyoming-openwakeword
+    container_name: wyoming-openwakeword
+    restart: unless-stopped
+    ports:
+      - "10400:10400"
+    command: --preload-model ok_nabu
+
   satellite:
     image: lunyaadev/rhasspy-wyoming-satellite
     container_name: wyoming-satellite
     restart: unless-stopped
     network_mode: host
+    privileged: true
     volumes:
       - /dev/snd:/dev/snd
-    group_add:
-      - audio
     command:
       - --uri
       - tcp://0.0.0.0:10700
-      - --name
-      - pc-satellite
+      - --wake-uri
+      - tcp://127.0.0.1:10400
+      - --wake-word-name
+      - ok_nabu
       - --mic-command
-      - "cat /dev/null"
+      - "arecord -D plughw:CARD=CameraB409241,DEV=0 -r 16000 -c 1 -f S16_LE -t raw"
       - --snd-command
-      - "cat > /dev/null"
+      - "aplay -D default -r 22050 -c 1 -f S16_LE -t raw"
+
+volumes:
+  ollama_data:
