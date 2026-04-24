@@ -2,11 +2,14 @@
 """
 Configure a secondary NIC (NetworkManager) on many nodes over SSH from an admin host.
 
+Optional: patch osd_network in /etc/ustor/ustor.conf on each node (same CIDR on all nodes).
+
 Required: SSH access; on each node, sudo for nmcli (NOPASSWD) or root SSH.
 """
 from __future__ import annotations
 
 import argparse
+import ipaddress
 import re
 import subprocess
 import sys
@@ -41,6 +44,48 @@ fi
 run_nmcli nmcli connection up "${CON_NAME}"
 echo "OK $(hostname): ${SECOND_IFACE} -> ${IP_CIDR}"
 ip -4 addr show dev "${SECOND_IFACE}"
+
+# Optional ustor.conf osd_network patch (args 3–5 from deploy script; use "-" to skip).
+USTOR_PATH="${3--}"
+OSD_CID="${4--}"
+OSD_MODE="${5--}"
+if [[ "$USTOR_PATH" != "-" && "$OSD_CID" != "-" && "$OSD_MODE" != "-" ]]; then
+  if [[ ! -f "$USTOR_PATH" ]]; then
+    echo "WARN: ustor.conf not found at $USTOR_PATH — skipping osd_network patch." >&2
+  else
+    echo "Patching osd_network in $USTOR_PATH (mode=$OSD_MODE, cidr=$OSD_CID) ..."
+    sudo python3 /dev/stdin "$USTOR_PATH" "$OSD_CID" "$OSD_MODE" <<'USTOR_PY'
+import json
+import pathlib
+import sys
+
+path = pathlib.Path(sys.argv[1])
+cidr = sys.argv[2]
+mode = sys.argv[3]
+
+data = json.loads(path.read_text(encoding="utf-8"))
+old = data.get("osd_network", "")
+if mode == "replace":
+    data["osd_network"] = cidr
+else:
+    # append (default): comma-separated CIDR list, same style as multi-homed clusters
+    parts = [x.strip() for x in str(old).split(",") if x.strip()] if old else []
+    if cidr not in parts:
+        parts.append(cidr)
+    data["osd_network"] = ",".join(parts) if parts else cidr
+
+path.write_text(
+    json.dumps(data, indent=2, ensure_ascii=True) + "\n",
+    encoding="utf-8",
+)
+print("osd_network is now:", data.get("osd_network"))
+USTOR_PY
+    OWN="$6"
+    [[ -z "$OWN" || "$OWN" == "-" ]] && OWN="ustor:ustor"
+    sudo chown "$OWN" "$USTOR_PATH" || true
+    sudo chmod 0440 "$USTOR_PATH" || true
+  fi
+fi
 """
 
 IFACE_RE = re.compile(r"^[a-zA-Z0-9._-]+$")
@@ -159,6 +204,9 @@ def validate_ssh_target(target: str) -> None:
         raise ValueError(f"Refusing suspicious SSH target: {target!r}")
 
 
+OWNER_RE = re.compile(r"^[^:]+:[^:]+$")
+
+
 def build_ssh_command(
     target: str,
     iface: str,
@@ -166,6 +214,10 @@ def build_ssh_command(
     ssh_extra: list[str],
     batch_mode: bool,
     use_tty: bool,
+    ustor_path: str,
+    osd_cidr: str,
+    osd_mode: str,
+    ustor_owner: str,
 ) -> list[str]:
     """Assemble ssh argv; remote script is sent on stdin."""
     cmd: list[str] = ["ssh"]
@@ -175,11 +227,34 @@ def build_ssh_command(
     cmd.extend(["-o", "StrictHostKeyChecking=accept-new"])
     if batch_mode:
         cmd.extend(["-o", "BatchMode=yes"])
-    cmd.extend([target, "bash", "-s", "--", iface, ip_cidr])
+    cmd.extend(
+        [
+            target,
+            "bash",
+            "-s",
+            "--",
+            iface,
+            ip_cidr,
+            ustor_path,
+            osd_cidr,
+            osd_mode,
+            ustor_owner,
+        ]
+    )
     return cmd
 
 
-def run_remote(target: str, iface: str, ip_cidr: str, args: argparse.Namespace) -> None:
+def run_remote(
+    target: str,
+    iface: str,
+    ip_cidr: str,
+    args: argparse.Namespace,
+    *,
+    ustor_path: str,
+    osd_cidr: str,
+    osd_mode: str,
+    ustor_owner: str,
+) -> None:
     """Run REMOTE_BASH on target via ssh."""
     cmd = build_ssh_command(
         target,
@@ -188,6 +263,10 @@ def run_remote(target: str, iface: str, ip_cidr: str, args: argparse.Namespace) 
         args.ssh_opt,
         batch_mode=not args.no_batch,
         use_tty=args.tty,
+        ustor_path=ustor_path,
+        osd_cidr=osd_cidr,
+        osd_mode=osd_mode,
+        ustor_owner=ustor_owner,
     )
     print(f"=== {target} -> {ip_cidr} ===", flush=True)
     subprocess.run(
@@ -207,11 +286,12 @@ def main() -> int:
         epilog="""
 Examples:
   %(prog)s 192.168.98 10.0.0.11/24 enp2s0 211 212 213
-  %(prog)s - 10.0.0.11/24 enp2s0 root@192.168.98.211 root@192.168.98.212
-  %(prog)s root@192.168.98 10.0.0.11/24 enp2s0 -f nodes.txt
+  %(prog)s - 10.0.0.11/24 enp2s0 root@192.168.98.211 --patch-ustor-conf --osd-network-cidr 10.0.0.0/24
+  %(prog)s root@192.168.98 10.0.0.11/24 enp2s0 -f nodes.txt --patch-ustor-conf --osd-supernet-plen 22
 
 Node list: -f/--nodes-file, trailing arguments after INTERFACE, or stdin if not a TTY.
 Addresses: first host gets FUTURE as given; each next host gets previous last octet + 1 (same prefix length).
+With --patch-ustor-conf, the same osd_network CIDR is applied on every node (append or replace).
 """,
     )
     parser.add_argument(
@@ -242,6 +322,55 @@ Addresses: first host gets FUTURE as given; each next host gets previous last oc
         "--tty",
         action="store_true",
         help="Allocate a TTY (ssh -t), e.g. for sudo password prompts",
+    )
+    parser.add_argument(
+        "--patch-ustor-conf",
+        action="store_true",
+        help=(
+            "After NM setup, update osd_network in ustor.conf on each node "
+            "(requires sudo + python3 on the node; ustor user for chown)"
+        ),
+    )
+    parser.add_argument(
+        "--osd-network-cidr",
+        default=None,
+        metavar="CIDR",
+        help=(
+            "Supernet to set/append as osd_network (e.g. 10.0.0.0/24 or 10.0.0.0/22). "
+            "If --patch-ustor-conf and this is omitted, uses A.B.C.0/plen from the first "
+            "future address; plen from --osd-supernet-plen or the same as the host /prefix."
+        ),
+    )
+    parser.add_argument(
+        "--osd-supernet-plen",
+        type=int,
+        default=None,
+        metavar="N",
+        help=(
+            "When auto-computing osd supernet (no --osd-network-cidr), use this prefix "
+            "length instead of the host interface prefix (e.g. 22 to match ustor-init infer)."
+        ),
+    )
+    parser.add_argument(
+        "--osd-network-mode",
+        choices=("append", "replace"),
+        default="append",
+        help=(
+            "append: comma-merge new CIDR with existing osd_network; "
+            "replace: set osd_network to the new CIDR only (default: append)"
+        ),
+    )
+    parser.add_argument(
+        "--ustor-conf",
+        default="/etc/ustor/ustor.conf",
+        metavar="PATH",
+        help="Path to ustor.conf on nodes (default: /etc/ustor/ustor.conf)",
+    )
+    parser.add_argument(
+        "--ustor-conf-owner",
+        default="ustor:ustor",
+        metavar="USER:GROUP",
+        help="chown after JSON write (default: ustor:ustor)",
     )
     parser.add_argument(
         "current_net",
@@ -280,6 +409,42 @@ Addresses: first host gets FUTURE as given; each next host gets previous last oc
     except ValueError as e:
         print(e, file=sys.stderr)
         return 2
+
+    if not OWNER_RE.match(args.ustor_conf_owner):
+        print(
+            f"Invalid --ustor-conf-owner (expected user:group): {args.ustor_conf_owner!r}",
+            file=sys.stderr,
+        )
+        return 2
+
+    if args.patch_ustor_conf:
+        if args.osd_network_cidr:
+            try:
+                net = ipaddress.ip_network(args.osd_network_cidr.strip(), strict=False)
+            except ValueError as e:
+                print(f"Invalid --osd-network-cidr: {e}", file=sys.stderr)
+                return 2
+            if not isinstance(net, ipaddress.IPv4Network):
+                print("--osd-network-cidr must be an IPv4 network", file=sys.stderr)
+                return 2
+            osd_network_cidr = str(net)
+        else:
+            pl_auto = (
+                args.osd_supernet_plen if args.osd_supernet_plen is not None else plen
+            )
+            if not (8 <= pl_auto <= 30):
+                print("--osd-supernet-plen must be between 8 and 30", file=sys.stderr)
+                return 2
+            osd_network_cidr = f"{o1}.{o2}.{o3}.0/{pl_auto}"
+        ustor_path = str(Path(args.ustor_conf))
+        osd_cidr_arg = osd_network_cidr
+        osd_mode_arg = args.osd_network_mode
+        ustor_owner_arg = args.ustor_conf_owner
+    else:
+        ustor_path = "-"
+        osd_cidr_arg = "-"
+        osd_mode_arg = "-"
+        ustor_owner_arg = "-"
 
     raw_nodes: list[str] = []
     if args.nodes_file is not None:
@@ -326,7 +491,16 @@ Addresses: first host gets FUTURE as given; each next host gets previous last oc
         last = start_last + i
         ip_cidr = f"{o1}.{o2}.{o3}.{last}/{plen}"
         try:
-            run_remote(target, iface, ip_cidr, args)
+            run_remote(
+                target,
+                iface,
+                ip_cidr,
+                args,
+                ustor_path=ustor_path,
+                osd_cidr=osd_cidr_arg,
+                osd_mode=osd_mode_arg,
+                ustor_owner=ustor_owner_arg,
+            )
         except subprocess.CalledProcessError as e:
             print(f"ssh failed for {target} (exit {e.returncode})", file=sys.stderr)
             return e.returncode or 1
