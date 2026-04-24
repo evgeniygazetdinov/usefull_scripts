@@ -15,11 +15,55 @@ import subprocess
 import sys
 from pathlib import Path
 
-# Remote bash snippet: receives interface name and IPv4 CIDR as $1 and $2.
+# Remote bash snippet: $1=iface $2=host CIDR; $3–$6 = ustor patch (or "-" to skip).
+# osd_network patch runs FIRST so a failing NM step cannot skip ustor.conf updates on peers.
 REMOTE_BASH = r"""set -euo pipefail
 SECOND_IFACE="$1"
 IP_CIDR="$2"
 CON_NAME="second-lan-static"
+
+# Optional ustor.conf osd_network patch (args 3–6; use "-" to skip patch).
+USTOR_PATH="${3:--}"
+OSD_CID="${4:--}"
+OSD_MODE="${5:--}"
+if [[ "$USTOR_PATH" != "-" && "$OSD_CID" != "-" && "$OSD_MODE" != "-" ]]; then
+  if [[ ! -f "$USTOR_PATH" ]]; then
+    echo "ERROR: ustor.conf not found at $USTOR_PATH (copy it here or run etcd-start first)." >&2
+    exit 3
+  fi
+  echo "Patching osd_network in $USTOR_PATH (mode=$OSD_MODE, cidr=$OSD_CID) ..."
+  sudo python3 /dev/stdin "$USTOR_PATH" "$OSD_CID" "$OSD_MODE" <<'USTOR_PY'
+import json
+import pathlib
+import sys
+
+path = pathlib.Path(sys.argv[1])
+cidr = sys.argv[2]
+mode = sys.argv[3]
+
+data = json.loads(path.read_text(encoding="utf-8"))
+old = data.get("osd_network", "")
+if mode == "replace":
+    data["osd_network"] = cidr
+else:
+    # append: comma-separated CIDR list for multi-homed clusters
+    parts = [x.strip() for x in str(old).split(",") if x.strip()] if old else []
+    if cidr not in parts:
+        parts.append(cidr)
+    data["osd_network"] = ",".join(parts) if parts else cidr
+
+path.write_text(
+    json.dumps(data, indent=2, ensure_ascii=True) + "\n",
+    encoding="utf-8",
+)
+print("osd_network is now:", data.get("osd_network"))
+USTOR_PY
+  OWN="${6:--}"
+  [[ "$OWN" == "-" || -z "$OWN" ]] && OWN="ustor:ustor"
+  sudo chown "$OWN" "$USTOR_PATH" || true
+  sudo chmod 0440 "$USTOR_PATH" || true
+  echo "ustor.conf osd_network patch finished on $(hostname)."
+fi
 
 if ! ip link show "${SECOND_IFACE}" &>/dev/null; then
   echo "On $(hostname): interface ${SECOND_IFACE} not found" >&2
@@ -44,48 +88,6 @@ fi
 run_nmcli nmcli connection up "${CON_NAME}"
 echo "OK $(hostname): ${SECOND_IFACE} -> ${IP_CIDR}"
 ip -4 addr show dev "${SECOND_IFACE}"
-
-# Optional ustor.conf osd_network patch (args 3–5 from deploy script; use "-" to skip).
-USTOR_PATH="${3--}"
-OSD_CID="${4--}"
-OSD_MODE="${5--}"
-if [[ "$USTOR_PATH" != "-" && "$OSD_CID" != "-" && "$OSD_MODE" != "-" ]]; then
-  if [[ ! -f "$USTOR_PATH" ]]; then
-    echo "WARN: ustor.conf not found at $USTOR_PATH — skipping osd_network patch." >&2
-  else
-    echo "Patching osd_network in $USTOR_PATH (mode=$OSD_MODE, cidr=$OSD_CID) ..."
-    sudo python3 /dev/stdin "$USTOR_PATH" "$OSD_CID" "$OSD_MODE" <<'USTOR_PY'
-import json
-import pathlib
-import sys
-
-path = pathlib.Path(sys.argv[1])
-cidr = sys.argv[2]
-mode = sys.argv[3]
-
-data = json.loads(path.read_text(encoding="utf-8"))
-old = data.get("osd_network", "")
-if mode == "replace":
-    data["osd_network"] = cidr
-else:
-    # append (default): comma-separated CIDR list, same style as multi-homed clusters
-    parts = [x.strip() for x in str(old).split(",") if x.strip()] if old else []
-    if cidr not in parts:
-        parts.append(cidr)
-    data["osd_network"] = ",".join(parts) if parts else cidr
-
-path.write_text(
-    json.dumps(data, indent=2, ensure_ascii=True) + "\n",
-    encoding="utf-8",
-)
-print("osd_network is now:", data.get("osd_network"))
-USTOR_PY
-    OWN="$6"
-    [[ -z "$OWN" || "$OWN" == "-" ]] && OWN="ustor:ustor"
-    sudo chown "$OWN" "$USTOR_PATH" || true
-    sudo chmod 0440 "$USTOR_PATH" || true
-  fi
-fi
 """
 
 IFACE_RE = re.compile(r"^[a-zA-Z0-9._-]+$")
@@ -291,7 +293,7 @@ Examples:
 
 Node list: -f/--nodes-file, trailing arguments after INTERFACE, or stdin if not a TTY.
 Addresses: first host gets FUTURE as given; each next host gets previous last octet + 1 (same prefix length).
-With --patch-ustor-conf, the same osd_network CIDR is applied on every node (append or replace).
+With --patch-ustor-conf, the same osd_network CIDR is applied on every node (default: replace).
 """,
     )
     parser.add_argument(
@@ -336,7 +338,7 @@ With --patch-ustor-conf, the same osd_network CIDR is applied on every node (app
         default=None,
         metavar="CIDR",
         help=(
-            "Supernet to set/append as osd_network (e.g. 10.0.0.0/24 or 10.0.0.0/22). "
+            "Supernet written to osd_network (e.g. 10.0.0.0/24 or 10.0.0.0/22); "
             "If --patch-ustor-conf and this is omitted, uses A.B.C.0/plen from the first "
             "future address; plen from --osd-supernet-plen or the same as the host /prefix."
         ),
@@ -354,10 +356,10 @@ With --patch-ustor-conf, the same osd_network CIDR is applied on every node (app
     parser.add_argument(
         "--osd-network-mode",
         choices=("append", "replace"),
-        default="append",
+        default="replace",
         help=(
-            "append: comma-merge new CIDR with existing osd_network; "
-            "replace: set osd_network to the new CIDR only (default: append)"
+            "replace: set osd_network to the new CIDR only (default); "
+            "append: comma-merge new CIDR with existing osd_network"
         ),
     )
     parser.add_argument(
