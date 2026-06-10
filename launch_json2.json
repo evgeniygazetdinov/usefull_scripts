@@ -55,7 +55,7 @@
           "name":"FastAPI Custom Launcher",
           "type":"python",
           "request":"launch",
-          "module":"main",
+          "module":"ustor_api.main",
           "justMyCode":false,
           "console":"integratedTerminal",
           "env":{
